@@ -1,31 +1,51 @@
 from mido import MidiFile, MetaMessage, MidiTrack, Message
 from random import choice, random
 from copy import deepcopy
-from tqdm import tqdm
-from typing import List
 
+"""Constant that introduce length of each bar"""
 BAR_LENGTH = 384 * 2
 
 
 class Music:
+    """
+    Class Music considers the necessary values for accompaniment and generates an output
+    """
     def __init__(self, filename):
+        """
+        Constructor of the class
+        :param filename: name of input file
+        """
         self.file = MidiFile(filename)
 
     def unique_notes(self):
+        """
+        Get unique note without repetitions from input file
+        :return: set of notes
+        """
         notes = set()
         for track in self.file.tracks[1:]:
             for msg in track[2:-1]:
                 notes.add(msg.note % 12)
+
         return notes
 
     def all_notes(self):
+        """
+        Get consistency of all notes from input notes
+        :return: array of all notes
+        """
         notes = []
         for track in self.file.tracks[1:]:
             for msg in track[2:-1]:
                 notes.append(msg.note % 12)
+
         return notes
 
     def accompaniment(self, chords):
+        """
+        Function that write output files
+        :param chords: a set of chords that are included in the accompaniment
+        """
         new_track = MidiTrack()
         vel = self.average_velocity()
         octave = self.average_octave() * 12
@@ -35,7 +55,6 @@ class Music:
             new_track.append(Message('note_on', channel=0, note=octave + ch[0], velocity=vel, time=0))
             new_track.append(Message('note_on', channel=0, note=octave + ch[1], velocity=vel, time=0))
             new_track.append(Message('note_on', channel=0, note=octave + ch[2], velocity=vel, time=0))
-
             new_track.append(Message('note_off', channel=0, note=octave + ch[0], velocity=vel, time=BAR_LENGTH))
             new_track.append(Message('note_off', channel=0, note=octave + ch[1], velocity=vel, time=0))
             new_track.append(Message('note_off', channel=0, note=octave + ch[2], velocity=vel, time=0))
@@ -44,6 +63,10 @@ class Music:
         self.file.save(f"{self.file.filename}_with_accompaniment.mid")
 
     def average_velocity(self):
+        """
+        Function that count average velocity of all melody
+        :return: average velocity
+        """
         number = 0
         sum_of_velocities = 0
         for track in self.file.tracks[1:]:
@@ -51,9 +74,14 @@ class Music:
                 if msg.type == "note_on":
                     number += 1
                     sum_of_velocities += msg.velocity
+
         return sum_of_velocities // number
 
     def average_octave(self):
+        """
+        Function that count average octave of all melody
+        :return: average octave
+        """
         number = 0
         octave = 0
         for track in self.file.tracks[1:]:
@@ -61,16 +89,26 @@ class Music:
                 if msg.type == "note_on":
                     number += 1
                     octave += (msg.note // 12)
+
         return octave // number
 
     def get_duration_in_bars(self):
+        """
+        Function that count duration in bars of melody
+        :return: duration in bars
+        """
         time = 0
         for track in self.file.tracks[1:]:
             for msg in track[2:-1]:
                 time += msg.time
+
         return time // BAR_LENGTH
 
     def divide_by_bars(self):
+        """
+        Function creates an array of notes that were played during the i-th beat
+        :return: array of notes that were played during the i-th beat
+        """
         amount_bars = self.get_duration_in_bars()
         result = [[] for _ in range(amount_bars)]
         arr = []
@@ -90,10 +128,16 @@ class Music:
                         result[j].append(on[1])
                 cur_time += BAR_LENGTH
             absolute_time_begin = absolute_time_end
+
         return result
 
 
 class Key:
+    """
+    The main function of class Key to chose correct key (tonic + scale)
+    """
+
+    """ Constant arrays of displacements"""
     KEYS = ["C", "Db|C#", "D", "Eb|D#", "E", "F", "Gb|F#", "G", "Ab|G#", "A", "Bb|A#", "B"]
     major_keys = {}
     minor_keys = {}
@@ -102,6 +146,10 @@ class Key:
     dim = {0, 3, 6}
 
     def __init__(self, music):
+        """
+        Constructor of class Key that generates table of chords
+        :param music: instance of class Music
+        """
         self.music = music
         for index, note in enumerate(self.KEYS):
             self.major_keys[note] = []
@@ -122,13 +170,25 @@ class Key:
             self.minor_keys[note].append(self.chord((8 + index) % 12, self.minor_triad))
             self.minor_keys[note].append(self.chord((10 + index) % 12, self.minor_triad))
 
-    def chord(self, scale, tonic):
+    def chord(self, root_note, displacement):
+        """
+        Supporting function for generating chords
+        :param root_note: scale of music
+        :param displacement: tonic of music
+        :return: array of chords
+        """
         chord = []
-        for el in tonic:
-            chord.append((scale + el) % 12)
+        for el in displacement:
+            chord.append((root_note + el) % 12)
+
         return chord
 
     def key(self):
+        """
+        Function that selects all suitable keys that have passed the "check" -comparison with the generated
+        table and major chords and then chose one with the help of correct_key()
+        :return: one key of melody
+        """
         notes = self.music.unique_notes()
         possible_keys_major = []
         possible_keys_minor = []
@@ -139,7 +199,6 @@ class Key:
                 possible_keys_major.append(note_string)
         for note_string in self.minor_keys:
             un_chords_notes = set(el[0] for el in self.minor_keys[note_string])
-            # print(note_string, list(un_chords_notes))
             res = all(note in un_chords_notes for note in notes)
             if res:
                 possible_keys_minor.append(note_string)
@@ -147,6 +206,12 @@ class Key:
         return self.correct_key(possible_keys_minor, possible_keys_major)
 
     def correct_key(self, possible_key_minor, possible_key_major):
+        """
+        Function that chooses one key from all the approached by some rules (please, refer to report)
+        :param possible_key_minor: possible minor keys
+        :param possible_key_major: possible major keys
+        :return:
+        """
         notes = self.music.all_notes()
         last_note = notes[-1]
 
@@ -194,8 +259,11 @@ class Key:
             if last_note in [subdominant, submedian, leading_tone, supertonic]:
                 return possible_key_major[i], "major"
 
-
     def good_chords(self):
+        """
+        The function narrows the search for suitable chords to 7 (from generated table) by key
+        :return: array of well-sounding chords by key
+        """
         key_note, scale = self.key()
         if scale == "major":
             return self.major_keys[key_note]
@@ -204,6 +272,12 @@ class Key:
 
 
 class Chord:
+    """
+    Class Chords it is an auxiliary class for the evolutionary algorithm. It helps to mutate chords,
+    to check whether the chord is diminished, suspend2 or suspend4
+    """
+
+    """Some constant displacement"""
     major_triad = {0, 4, 7}
     minor_triad = {0, 3, 7}
     major_first_inversion = {4, 7, 12}
@@ -215,69 +289,109 @@ class Chord:
     sus4 = {0, 5, 7}
 
     def __init__(self, notes, step, scale):
+        """
+        Constructor of the class
+        :param notes: notes that make up chords
+        :param step: step from minors/major keys
+        :param scale: scale of music
+        """
         self.notes = notes
         self.scale = scale
         self.current_note = self.notes[0]
         self.step = step
 
     def mutation(self):
+        """
+        Mutate chords if random probability more than 50%
+        """
+        if random() <= 0.5:
+            return
+
         n = random()
         if n <= 0.3:
             if self.scale == "minor":
                 self.notes = [self.current_note + i for i in self.minor_first_inversion]
-        if 0.3 < n <= 0.5:
-            if self.scale == "major":
+            else:
                 self.notes = [self.current_note + i for i in self.major_first_inversion]
-        if 0.5 < n <= 0.65:
+
+        if 0.3 < n <= 0.6:
             if self.scale == "major":
                 self.notes = [self.current_note + i for i in self.major_second_inversion]
-        if 0.65 < n <= 0.95:
-            if self.scale == "minor":
+            else:
                 self.notes = [self.current_note + i for i in self.minor_second_inversion]
-        if 0.95 < n <= 0.97:
+
+        if 0.6 < n <= 0.8:
             if self.scale == "major" and self.step not in [3, 7]:
                 self.notes = [self.current_note + i for i in self.sus2]
             if self.scale == "minor" and self.step not in [2, 5]:
                 self.notes = [self.current_note + i for i in self.sus2]
-        if 0.97 < n <= 1:
+
+        if 0.8 < n <= 1:
             if self.scale == "major" and self.step not in [4, 7]:
                 self.notes = [self.current_note + i for i in self.sus4]
             if self.scale == "minor" and self.step not in [2, 6]:
                 self.notes = [self.current_note + i for i in self.sus4]
 
     def check_dim(self) -> bool:
+        """
+        Function checks if chord is diminished
+        :return: True if chord is diminished, otherwise false
+        """
         dim_triad = [self.current_note + i for i in self.dim]
         return self.notes == dim_triad
 
     def check_sus2(self) -> bool:
+        """
+        Function checks if chord is suspend2
+        :return: True if chord is suspend2, otherwise false
+        """
         sus2_triad = [self.current_note + i for i in self.sus2]
         return self.notes == sus2_triad
 
     def check_sus4(self) -> bool:
+        """
+        Function checks if chord is suspend4
+        :return: True if chord is suspend4, otherwise false
+        """
         sus4_triad = [self.current_note + i for i in self.sus2]
         return self.notes == sus4_triad
 
     def get_tuple(self):
+        """
+        Supporting function for change array of notes of one chord into tuple
+        :return: tuple of chords
+        """
         return self.notes[0], self.notes[1], self.notes[2]
 
 
 class Chromosome:
+    """
+    Class Chromosome generates chromosome from chords, then mutate and estimate them
+    """
     def __init__(self, chords: list[Chord]):
+        """
+        Constructor of the class
+        :param chords: array of chords
+        """
         self.chords = chords
 
     def mutation_chromosome(self):
+        """
+        Function that mutate all chords in chromosome
+        """
         for chord in self.chords:
             chord.mutation()
 
-    def fitness(self, music: Music, key: Key) -> int:
+    def fitness(self, music: Music) -> int:
+        """
+        Estimates chromosome by several rules (please, refer to report)
+        :param music: instance of class Music
+        :return: fitness sum
+        """
         fit_res = 0
-        notes = music.all_notes()
         div_music = music.divide_by_bars()
 
         for i in range(len(self.chords)):
-            if self.chords[i].notes[0] == notes[-1] or self.chords[i].notes[0] == notes[0]:
-                fit_res += 9
-
             if self.chords[i].check_dim() or self.chords[i].check_sus2() or self.chords[i].check_sus4():
                 fit_res -= 20
             else:
@@ -299,10 +413,10 @@ class Chromosome:
                 else:
                     fit_res += 1
 
-            for l in range(2, len(div_music), 4):
-                if self.chords[0].notes in div_music[l]:
+            for n in range(2, len(div_music), 4):
+                if self.chords[0].notes in div_music[n]:
                     fit_res += 10
-                if (self.chords[1].notes in div_music[l]) or (self.chords[2].notes in div_music[l]):
+                if (self.chords[1].notes in div_music[n]) or (self.chords[2].notes in div_music[n]):
                     fit_res += 5
                 else:
                     fit_res -= 10
@@ -318,10 +432,18 @@ class Chromosome:
 
 
 class Population:
-
-    def __init__(self, music, population_size, iterations):
+    """
+    Class Population can produce generations of chromosomes
+    """
+    def __init__(self, music, generations_size, iterations):
+        """
+        Constructor of the class
+        :param music: instance of class Music
+        :param generations_size: user defined size of
+        :param iterations: number of iterations
+        """
         self.iterations = iterations
-        self.population_size = population_size
+        self.population_size = generations_size
         self.music = music
         self.melody = Key(music)
         self.key = self.melody.key()
@@ -329,16 +451,29 @@ class Population:
         self.good_chords = list(zip(tmp, range(1, len(tmp) + 1)))
         self.amount_of_chords_in_accompaniment = self.music.get_duration_in_bars()
 
-    def initial_population(self) -> list[Chromosome]:
+    def initial_generation(self) -> list[Chromosome]:
+        """
+        Function that creates initial generation
+        :return: array of chromosomes
+        """
         init_population = []
         for i in range(self.population_size):
             list_for_chromosome = []
             for j in range(self.amount_of_chords_in_accompaniment):
                 list_for_chromosome.append(Chord(*choice(self.good_chords), self.key[1]))
+
             init_population.append(Chromosome(list_for_chromosome))
+
         return init_population
 
     def crossover(self, chromosome1: Chromosome, chromosome2: Chromosome):
+        """
+        Function take the odd positions from chromosome1 and the even positions from chromosome2,
+        and then we create a new chromosome
+        :param chromosome1: parent chromosome1
+        :param chromosome2: parent chromosome2
+        :return:
+        """
         new_chromosome = list()
         for i in range(len(chromosome1.chords)):
             if i % 2 == 0:
@@ -347,29 +482,37 @@ class Population:
                 new_chromosome.append(chromosome2.chords[i])
         return Chromosome(new_chromosome)
 
-    def next_generation(self, previous_population: List[Chromosome]):
-        next_gener = deepcopy(previous_population)
-        next_gener.sort(key=lambda x: -x.fitness(self.music, self.melody))
-
+    def next_generation(self, previous_generation):
+        """
+        Function produce next generation of chromosome
+        :param previous_generation: previous generation
+        :return: array of chromosomes that make next generation
+        """
+        next_gener = deepcopy(previous_generation)
         for _ in range(self.population_size):
-            next_gener.append(self.crossover(choice(previous_population), choice(previous_population)))
+            next_gener.append(self.crossover(choice(previous_generation), choice(previous_generation)))
 
-        for chromosome in previous_population:
+        for chromosome in previous_generation:
             mutated_chromosome = deepcopy(chromosome)
             mutated_chromosome.mutation_chromosome()
             next_gener.append(mutated_chromosome)
+
         next_gener.sort(key=lambda x: -x.fitness(self.music, self.melody))
         next_gener = next_gener[:self.population_size]
         return next_gener
 
     def generator(self):
-        population = self.initial_population()
-        for _ in tqdm(range(self.iterations)):
-            population = self.next_generation(population)
-        chords = [chord.get_tuple() for chord in population[0].chords]
+        """
+        Function generates populations, which number is number of iterations
+        :return: music with accompaniment
+        """
+        generation = self.initial_generation()
+        for _ in range(self.iterations):
+            generation = self.next_generation(generation)
+        chords = [chord.get_tuple() for chord in generation[0].chords]
         self.music.accompaniment(chords)
 
 
-song = Music("input3.mid")
-population = Population(song, 100, 200)
+music = Music("input2.mid")  # change it to the needed file
+population = Population(music, 100, 200)
 population.generator()
