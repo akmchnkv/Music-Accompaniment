@@ -10,6 +10,7 @@ class Music:
     """
     Class Music considers the necessary values for accompaniment and generates an output
     """
+
     def __init__(self, filename):
         """
         Constructor of the class
@@ -41,23 +42,22 @@ class Music:
 
         return notes
 
-    def accompaniment(self, chords):
+    def accompaniment(self, chromosome):
         """
         Function that write output files
-        :param chords: a set of chords that are included in the accompaniment
+        :param chromosome: the best generated chromosome
         """
         new_track = MidiTrack()
         vel = self.average_velocity()
         octave = self.average_octave() * 12
-        print(vel, type(vel))
         new_track.append(MetaMessage("track_name", name='Elec. Piano (Classic)', time=0))
-        for ch in chords:
-            new_track.append(Message('note_on', channel=0, note=octave + ch[0], velocity=vel, time=0))
-            new_track.append(Message('note_on', channel=0, note=octave + ch[1], velocity=vel, time=0))
-            new_track.append(Message('note_on', channel=0, note=octave + ch[2], velocity=vel, time=0))
-            new_track.append(Message('note_off', channel=0, note=octave + ch[0], velocity=vel, time=BAR_LENGTH))
-            new_track.append(Message('note_off', channel=0, note=octave + ch[1], velocity=vel, time=0))
-            new_track.append(Message('note_off', channel=0, note=octave + ch[2], velocity=vel, time=0))
+        for ch in chromosome.chords:
+            new_track.append(Message('note_on', channel=0, note=octave + ch.notes[0], velocity=vel, time=0))
+            new_track.append(Message('note_on', channel=0, note=octave + ch.notes[1], velocity=vel, time=0))
+            new_track.append(Message('note_on', channel=0, note=octave + ch.notes[2], velocity=vel, time=0))
+            new_track.append(Message('note_off', channel=0, note=octave + ch.notes[0], velocity=vel, time=BAR_LENGTH))
+            new_track.append(Message('note_off', channel=0, note=octave + ch.notes[1], velocity=vel, time=0))
+            new_track.append(Message('note_off', channel=0, note=octave + ch.notes[2], velocity=vel, time=0))
         new_track.append(MetaMessage("end_of_track", time=0))
         self.file.tracks.append(new_track)
         self.file.save(f"{self.file.filename}_with_accompaniment.mid")
@@ -368,6 +368,7 @@ class Chromosome:
     """
     Class Chromosome generates chromosome from chords, then mutate and estimate them
     """
+
     def __init__(self, chords: list[Chord]):
         """
         Constructor of the class
@@ -435,6 +436,7 @@ class Population:
     """
     Class Population can produce generations of chromosomes
     """
+
     def __init__(self, music, generations_size, iterations):
         """
         Constructor of the class
@@ -450,21 +452,6 @@ class Population:
         tmp = self.melody.good_chords()
         self.good_chords = list(zip(tmp, range(1, len(tmp) + 1)))
         self.amount_of_chords_in_accompaniment = self.music.get_duration_in_bars()
-
-    def initial_generation(self) -> list[Chromosome]:
-        """
-        Function that creates initial generation
-        :return: array of chromosomes
-        """
-        init_population = []
-        for i in range(self.population_size):
-            list_for_chromosome = []
-            for j in range(self.amount_of_chords_in_accompaniment):
-                list_for_chromosome.append(Chord(*choice(self.good_chords), self.key[1]))
-
-            init_population.append(Chromosome(list_for_chromosome))
-
-        return init_population
 
     def crossover(self, chromosome1: Chromosome, chromosome2: Chromosome):
         """
@@ -497,22 +484,40 @@ class Population:
             mutated_chromosome.mutation_chromosome()
             next_gener.append(mutated_chromosome)
 
-        next_gener.sort(key=lambda x: -x.fitness(self.music, self.melody))
+        next_gener.sort(key=lambda x: -x.fitness(self.music))
         next_gener = next_gener[:self.population_size]
         return next_gener
 
-    def generator(self):
+    def produce_generations(self, initial_generation):
         """
-        Function generates populations, which number is number of iterations
-        :return: music with accompaniment
+        Function that make iterations of evolution algorithm
+        :return: best chromosomes
         """
-        generation = self.initial_generation()
+        generation = initial_generation
         for _ in range(self.iterations):
             generation = self.next_generation(generation)
-        chords = [chord.get_tuple() for chord in generation[0].chords]
-        self.music.accompaniment(chords)
+        return generation[0]
+
+    def run(self):
+        """
+        Function that runs evolution algorithm
+        :return: saves melody with accompaniment
+        """
+        # create initial generation
+        init_generation = []
+        for i in range(self.population_size):
+            list_for_chromosome = []
+            for j in range(self.amount_of_chords_in_accompaniment):
+                list_for_chromosome.append(Chord(*choice(self.good_chords), self.key[1]))
+
+            init_generation.append(Chromosome(list_for_chromosome))
+
+        best_generation = self.produce_generations(init_generation)
+
+        # chords = [chord.get_tuple() for chord in best_generation.chords]
+        self.music.accompaniment(best_generation)
 
 
 music = Music("input2.mid")  # change it to the needed file
 population = Population(music, 100, 200)
-population.generator()
+population.run()
