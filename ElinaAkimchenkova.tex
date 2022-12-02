@@ -1,0 +1,123 @@
+\documentclass[12pt, oneside]{article}
+\usepackage[english]{babel}
+\usepackage[a4paper,top=2cm,bottom=2cm,left=3cm,right=2.5cm,marginparwidth=1.75cm]{geometry}
+\usepackage{graphicx}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{setspace}
+\onehalfspacing
+\title{The second theory test}
+\author{Elina Akimchenkova BS21-07 26.08.2003}
+
+\date{}
+\begin{document}
+\maketitle
+
+\section{Task 1}
+\paragraph{Problem:}Consider the initial value problem: \(y' - 26y = 8y^2\), where \(y:[0, 0.5] \xrightarrow{} \mathbb{R}\) is a real function of an independent variable $x$, and $y(0) = 2003$. Characterize the equation, then using series approach write polynomial of the $3^{rd}$ degree approximation for the IVP, and finally define the order of the polynomial approximation in some neighborhood of 0.
+
+\paragraph{Solution:}
+This is first-order nonlinear ordinary differential equation with constant coefficients:
+\[y'= 8y^2 + 26y\] 
+According to the lecture notes for week 7, slides 28–29, let's construct an approximation of the solution in the form of a Maclaurin series:
+\[y(x) = \sum_{n \geq 0} \frac{y(x)^{(n)}(0)}{n!}x^n\]
+The first term $y(0) = 2003$ is given. Then, obtain $y'(0)$ by substituting:
+\[y'(0) = 8(y(0))^2 + 26y(0) = 8 \cdot 2003^2 + 26\cdot 2003 = 32148150\]
+Now, we are ready to find derivatives and their values:
+\begin{displaymath}
+	\begin{split}
+		&y'' = (y')' = 16y\cdot y' + 26y' \\
+		&y''(0) = 1031119763100 \\
+		\\ 
+		&y''' = 16\cdot ((y')^2 + y\cdot y'') + 26y''\\
+		&y'''(0) = 49608192056429400
+	\end{split}
+\end{displaymath}
+For the $3^{rd}$ degree polynomial approximation for the IVP in some neighborhood of 0, the form is the following:
+\[y(x) = y(0) + y'(0) \cdot x + \frac{y''(0) \cdot x^2}{2} + \frac{y'''(0) \cdot x^3}{6} + o(x^3), \ x \rightarrow 0 \\\]
+The order of the approximation is $o(x^3)$ since the remainder of the series will be insignificant compared to $x^3$ in the neighborhood of 0:
+\[\lim\limits_{x\to 0} \frac{o(x^3)}{x^3}=0\]
+Finally, we can make approximation using the Maclaurin's expansion:
+
+\begin{displaymath}
+	\begin{split}
+		&y(x) = 2003 + 32148150\cdot x + \frac{1031119763100}{2}\cdot x^2 + \frac{49608192056429400}{6}\cdot x^3 + o(x^3), \ x \rightarrow 0 \\
+		\\
+		&y(x) = 2003 + 32148150\cdot x + 515559881550\cdot x^2 + 8268032009404900\cdot x^3 + o(x^3), \ x \rightarrow 0\\
+	\end{split}
+\end{displaymath}
+\paragraph{Answer:}
+\[y(x) = 2003 + 32148150\cdot x + 515559881550\cdot x^2 + 8268032009404900\cdot x^3 + o(x^3), \ x \rightarrow 0\]
+\paragraph{Remark:}
+To confirm my approximation solution I obtained the following analytical result (for the detailed solution refer to Appendix):
+\[y(x) = \frac{26039\cdot e^{26x}}{8025 - 8012\cdot e^{26x}}\]
+This function have point of discontinuity at point x = x0:
+\[x_0 = \frac{1}{26} \ln\frac{8025}{8012} \approx 0.00006236 \in [0, \ 0.5]\]
+The solution contains a point of discontinuity. Therefore, 
+note that the problem statement is not fully correct because the most general solution to the IVP is not continuous on [0, 0.5]. So, the obtained approximation can be used only on $x \in [0,\ \frac{1}{26}\ln{\frac{8025}{8012}}).
+
+\section{Task 2}
+\paragraph{Problem:}
+Consider the equation $26y'' + 8y = 0$, where $y:[0, +\infty] \xrightarrow{} \mathbb{R}$ is a real function of an independent variable $x$. Characterize the equation, define what is stability of the equation at equilibrium point (0, 0) and prove stability using Lyapunov function.
+
+\paragraph{Solution:}
+This is a second-order linear homogeneous ordinary differential equation with constant coefficients. As mentioned on tutorial for week 7 slide 5, let's establish what stability of the equation at equilibrium point means. Let’s consider a solution of the system of equations: 
+\begin{equation}
+    \label{system}
+    \begin{cases}
+        $\textbf{h'} = f(\textbf{h})$\\
+        $\textbf{h} = (\textit{h_1(x)}, h_2(x),..., h_n(x))$
+    \end{cases}
+\end{equation}
+Assume that the solution $\mathcal{H}(x)$ for given initial condition $\mathcal{H}(x) = \mathcal{H}_0$ does exist for all $x>x_0$. The solution is called stable, if for any $\epsilon >0$ there exists $\delta >0$, such that for any $x>x_0$: $||\textbf{h}(x) - \mathcal{H}(x)|| < \epsilon$ for any solution $\textbf{h}(x)$ such that $||\textbf{h}(x_0) - \mathcal{H}_0|| < \delta$.
+\
+Now let define what is Lyapunov function and its conditions (according to the tutorial slide 8 for week 7). A continuously differentiable function $\mathcal{L}(\textbf{h})$ is called Lyapunov function for the system of equation
+\begin{equation}
+    \label{2system}
+    \begin{cases}
+        $\textbf{h}'(x) = f(\textbf{h})$,\\
+        $f(\textbf{0}) = 0$
+    \end{cases}
+\end{equation}
+at the equilibrium \textbf{0} if:
+\begin{enumerate}
+    \item  $\mathcal{L}(\textbf{h})$ is obviously continuously differentiable function;
+    \item  $\mathcal{L}(\textbf{0}) = 0$;
+    \item $\mathcal{L}(\textbf{h}) > 0$, when $\textbf{h} \neq 0$;
+    \item There exists $\epsilon > 0$, such that $\mathcal{L}'(\textbf{h}(x)) \leq 0$, when $||\textbf{h}|| < \epsilon$.
+\end{enumerate}
+Now we can prove that equilibrium point $(0,0)$ is stable. According to the second Lyapunov’s stability theorem(Tutorial 7, slide 9), equilibrium point is stable if there exists the Lyapunov function for the system of equations (\ref{2system}).
+\\\
+Original equation is $26y'' + 8y = 0$. Let $y = h_1$ and $y' = h_2$. As a result, we obtain the following system:
+\begin{equation*}
+    \begin{cases}
+        $h_1' = h_2$,\\
+        $h_2' = -\frac{4}{13}\cdot h_1$
+    \end{cases}
+\end{equation*}
+Let us examine the following candidate for Lyapunov function $\mathcal{L}(h_1, h_2) = h_1^2 + \frac{13}{4}\cdot h_2^2$:
+\begin{enumerate}
+    \item $\mathcal{L}(h_1, h_2)$ is a continuously differentiable function;
+    \item $\mathcal{L}(0, 0) = 0$
+    \item $\mathcal{L}(h_1, h_2) > 0$, except the $(0, 0)$
+    \item $\mathcal{L}'(h_1, h_2) = 2(h_1\cdot h_1' + \frac{13}{4}\cdot h_2 \cdot h_2') = 2h_1\cdot h_2(1 - \frac{4}{13}\cdot \frac{13}{4}) = 0$, for all $h_1, h_2$
+\end{enumerate}
+According to the definition, $\mathcal{L}(h_1, h_2) = h_1^2 + \frac{13}{4}\cdot h_2^2$ is Lyapunov function for the system at the equilibrium point (0,0). The second Lyapunov stability theorem leads us to the conclusion that given the system's Lyapunov function exists, the equilibrium point $(0,0)$ is stable.
+\textbf{Quod Erat Demonstrandum.}
+\newpage
+\section{Appendix}
+Analytical solution to the \(y' - 26y = 8y^2, y(0) = 2003\).
+\\\
+Note that $y\equiv C$, $C\in \mathbf{R}$ is a solution of the equation,but $y(0)=2003$ only when $C=2003$, so we can safely assume that $y\not\equiv C, C \in \mathbf{R} \backslash \left\{ {2003} \right\}$
+\[\frac{dy}{26y + 8y^2} =  dx\]
+Integrating both parts yields:
+\[\frac{1}{26}\cdot \ln{|\frac{y}{4y+13}|} = x+C, C\in \mathbf{R}\]
+Therefore, after trivial calculation, the most general solution is:
+\[y(x) = -\frac{13}{4C\cdot e^{26x} -4} - \frac{13}{4}, C\in \mathbf{R}, x \in \mathbf{R} \backslash \left\{ {-\frac{1}{26}\cdot\ln{\frac{1}{C}} \right\} \]
+Substituting $y(0) = 2003$:
+\[C = \frac{8012}{8025}\]
+Thus, the most general solution to the IVP is:
+\[y(x) = \frac{26039\cdot e^{26x}}{8025 - 8012\cdot e^{26x}}, x \in \mathbf{R} \backslash \left\{ {-\frac{1}{26}\cdot\ln{\frac{8025}{8012}} \right\}}\]
+
+\end{document}
